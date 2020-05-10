@@ -4988,13 +4988,17 @@ macro_rules! arrays {
             ///
             /// This function will panic if this typed array's length is
             /// different than the length argument passed into the function.
-            pub fn copy_to_mem_raw(&self, dst: *mut $ty, length: usize) {
+            fn copy_to_mem_raw(&self, dst: *mut $ty, length: usize) {
                 assert_eq!(self.length() as usize, length);
                 let buf = wasm_bindgen::memory();
                 let mem = buf.unchecked_ref::<WebAssembly::Memory>();
                 let all_wasm_memory = $name::new(&mem.buffer());
                 let offset = dst as usize / mem::size_of::<$ty>();
                 all_wasm_memory.set(self, offset as u32);
+            }
+
+            pub fn copy_to_uninit_mem(&self, dst: &mut [mem::MaybeUninit<$ty>]) {
+                self.copy_to_mem_raw(dst.as_mut_ptr() as *mut $ty, dst.len());                
             }
 
             /// Efficiently copies the contents of this JS typed array into a new Vec.

@@ -1,3 +1,7 @@
+#![feature(maybe_uninit_uninit_array)]
+
+use std::mem::MaybeUninit;
+
 use js_sys::*;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -236,108 +240,105 @@ fn Float64Array_view_mut_raw() {
     test_array_view_mut_raw(js_sys::Float64Array::view_mut_raw, f64::from, JsValue::from);
 }
 
-fn test_js_array_copy_to_mem_raw<ElemT: std::cmp::PartialEq + std::fmt::Debug, JsArrT>(
-    sut: fn(&JsArrT, *mut ElemT, usize) -> (),
+fn test_js_array_copy_to_uninit_mem<ElemT: std::cmp::PartialEq + std::fmt::Debug, JsArrT>(
+    sut: fn(&JsArrT, &mut [MaybeUninit<ElemT>]) -> (),
     sliceToJsArray: fn(&[ElemT]) -> JsArrT,
     u8ToElem: fn(u8) -> ElemT,
 ) {
-    let start: u8 = 10;
-    let len: usize = 32;
-    let end: u8 = start + len as u8;
+    const start: u8 = 10;
+    const len: usize = 32;
+    const end: u8 = start + len as u8;
     let expected: Vec<ElemT> = (start..end).map(u8ToElem).collect();
 
     // create typed js array with values
     let js_arr: JsArrT = sliceToJsArray(expected.as_slice());
 
-    // allocate uninitialized Vec instance
-    let mut vec: Vec<ElemT> = Vec::with_capacity(len);
-    unsafe {
-        vec.set_len(len);
-    }
+    // allocate uninitialized buffer
+    let mut buf: [MaybeUninit<ElemT>; len] = MaybeUninit::uninit_array();
 
     // call the function under test
-    sut(&js_arr, vec.as_mut_ptr(), len);
+    sut(&js_arr, &mut buf);
 
     // make sure js_arr values copied into vec
-    assert_eq!(vec, expected);
+    assert_eq!(buf, expected);
 }
 
 #[wasm_bindgen_test]
-fn Int8Array_copy_to_mem_raw() {
-    test_js_array_copy_to_mem_raw(
-        js_sys::Int8Array::copy_to_mem_raw,
+fn Int8Array_copy_to_uninit_mem() {
+    test_js_array_copy_to_uninit_mem(
+        js_sys::Int8Array::copy_to_uninit_mem,
         |xs: &[i8]| js_sys::Int8Array::from(xs),
         u8Toi8_unsafe,
     );
 }
 
 #[wasm_bindgen_test]
-fn Int16Array_copy_to_mem_raw() {
-    test_js_array_copy_to_mem_raw(
-        js_sys::Int16Array::copy_to_mem_raw,
+fn Int16Array_copy_to_uninit_mem() {
+    test_js_array_copy_to_uninit_mem(
+        js_sys::Int16Array::copy_to_uninit_mem,
         |xs: &[i16]| js_sys::Int16Array::from(xs),
         i16::from,
     );
 }
 
 #[wasm_bindgen_test]
-fn Int32Array_copy_to_mem_raw() {
-    test_js_array_copy_to_mem_raw(
-        js_sys::Int32Array::copy_to_mem_raw,
+fn Int32Array_copy_to_uninit_mem() {
+    test_js_array_copy_to_uninit_mem(
+        js_sys::Int32Array::copy_to_uninit_mem,
         |xs: &[i32]| js_sys::Int32Array::from(xs),
         i32::from,
     );
 }
 
 #[wasm_bindgen_test]
-fn Uint8Array_copy_to_mem_raw() {
-    test_js_array_copy_to_mem_raw(
-        js_sys::Uint8Array::copy_to_mem_raw,
+fn Uint8Array_copy_to_uninit_mem() {
+    test_js_array_copy_to_uninit_mem(
+        js_sys::Uint8Array::copy_to_uninit_mem,
         |xs: &[u8]| js_sys::Uint8Array::from(xs),
         u8::from,
     );
 }
 
 #[wasm_bindgen_test]
-fn Uint8ClampedArray_copy_to_mem_raw() {
-    test_js_array_copy_to_mem_raw(
-        js_sys::Uint8ClampedArray::copy_to_mem_raw,
+fn Uint8ClampedArray_copy_to_uninit_mem() {
+    test_js_array_copy_to_uninit_mem(
+        js_sys::Uint8ClampedArray::copy_to_uninit_mem,
         |xs: &[u8]| js_sys::Uint8ClampedArray::from(xs),
         u8::from,
     );
 }
 
 #[wasm_bindgen_test]
-fn Uint16Array_copy_to_mem_raw() {
-    test_js_array_copy_to_mem_raw(
-        js_sys::Uint16Array::copy_to_mem_raw,
+fn Uint16Array_copy_to_uninit_mem() {
+    test_js_array_copy_to_uninit_mem(
+        js_sys::Uint16Array::copy_to_uninit_mem,
         |xs: &[u16]| js_sys::Uint16Array::from(xs),
         u16::from,
     );
 }
 
 #[wasm_bindgen_test]
-fn Uint32Array_copy_to_mem_raw() {
-    test_js_array_copy_to_mem_raw(
-        js_sys::Uint32Array::copy_to_mem_raw,
+fn Uint32Array_copy_to_uninit_mem() {
+    test_js_array_copy_to_uninit_mem(
+        js_sys::Uint32Array::copy_to_uninit_mem,
         |xs: &[u32]| js_sys::Uint32Array::from(xs),
         u32::from,
     );
 }
 
 #[wasm_bindgen_test]
-fn Float32Array_copy_to_mem_raw() {
-    test_js_array_copy_to_mem_raw(
-        js_sys::Float32Array::copy_to_mem_raw,
+fn Float32Array_copy_to_uninit_mem() {
+    test_js_array_copy_to_uninit_mem(
+        js_sys::Float32Array::copy_to_uninit_mem,
         |xs: &[f32]| js_sys::Float32Array::from(xs),
         f32::from,
     );
 }
 
 #[wasm_bindgen_test]
-fn Float64Array_copy_to_mem_raw() {
-    test_js_array_copy_to_mem_raw(
-        js_sys::Float64Array::copy_to_mem_raw,
+fn Float64Array_copy_to_uninit_mem() {
+    test_js_array_copy_to_uninit_mem(
+        js_sys::Float64Array::copy_to_uninit_mem,
         |xs: &[f64]| js_sys::Float64Array::from(xs),
         f64::from,
     );
